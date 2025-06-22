@@ -43,6 +43,8 @@
     }
 
     .search-btn {
+      box-sizing: border-box;
+      width:100px;
       margin-left: 12px;
       padding: 10px 22px;
       background: #0078d4;
@@ -140,6 +142,41 @@
 
     .ext-download:hover {
       background: #005fa3;
+    }
+
+    @media (max-width: 600px) {
+
+      .search-input {
+        width: 100%;
+        min-width: 0;
+        font-size: 0.98rem;
+      }
+
+      .search-btn {
+        padding: 10px 12px;
+        font-size: 0.98rem;
+      }
+
+      #modal-content {
+        min-width: 0 !important;
+        width: 95vw !important;
+        max-width: 98vw !important;
+        padding: 18px 6vw !important;
+      }
+    }
+
+    #modal-backdrop {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.32);
+      justify-content: center;
+      align-items: center;
+      transition: background 0.2s;
     }
   </style>
 </head>
