@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VSCode Extension Download</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f5f7;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      padding: 24px 32px 16px 32px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+    }
+
+    .search-input {
+      padding: 10px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      width: 320px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    .search-input:focus {
+      border-color: #0078d4;
+    }
+
+    .search-btn {
+      margin-left: 12px;
+      padding: 10px 22px;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .search-btn:hover {
+      background: #005fa3;
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 32px;
+      padding: 40px 32px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .ext-card {
+      box-sizing: border-box;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 10px;
+      transition: box-shadow 0.2s, transform 0.18s cubic-bezier(.4, 1.6, .6, 1), border 0.2s;
+      position: relative;
+      min-width: 0;
+      max-width: 220px;
+      width: 100%;
+      margin: 0 auto;
+      height: 200px;
+      overflow: hidden;
+    }
+
+    .ext-card:hover {
+      box-shadow: 0 12px 32px rgba(0, 120, 212, 0.18), 0 2px 8px rgba(0, 0, 0, 0.06);
+      transform: translateY(-8px) scale(1.03);
+      border: 1.5px solid #0078d4;
+      z-index: 2;
+    }
+
+    .ext-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      background: #f3f3f3;
+      object-fit: contain;
+    }
+
+    .ext-info {
+      flex: 1;
+      margin-bottom: 16px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+
+    .ext-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #222;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ext-desc {
+      display: none;
+    }
+
+    .ext-download {
+      align-self: flex-end;
+      background: #0078d4;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 18px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .ext-download:hover {
+      background: #005fa3;
+    }
+  </style>
+</head>
+
+<body>
+  <header class="header">
+    <div class="search-box">
+      <input class="search-input" type="text" placeholder="확장 프로그램 검색..." />
+      <button class="search-btn">검색</button>
+    </div>
+  </header>
+  <main>
+    <section class="results-grid">
+    </section>
+  </main>
+  <!-- 모달 영역 -->
+  <div id="modal-backdrop" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);justify-content:center;align-items:center;"></div>
+  <script>
+    let loading = false
+    // 모달 생성 함수
+    function showModal(html) {
+      const modal = document.getElementById('modal-backdrop');
+      modal.innerHTML = `<div id='modal-content' style='background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.18);padding:32px 28px;min-width:320px;max-width:90vw;max-height:90vh;overflow:auto;position:relative;'>${html}</div>`;
+      modal.style.display = 'flex';
+    }
+    function closeModal() {
+      const modal = document.getElementById('modal-backdrop');
+      modal.style.display = 'none';
+      modal.innerHTML = '';
+    }
+
+    document.querySelector('#modal-backdrop').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        closeModal();
+      } else if(e.target.id === 'download-vsix') {
+        const select = document.querySelector('#select-version');
+        const version = select.value.split('#')[0]; // # 뒤의 target은 선택하지 않음
+        const publisher = select.dataset.publisher;
+        const name = select.dataset.name;
+        const target = select.value.split('#')[1] || ''; // # 뒤의 target 값
+        const url = `https://marketplace.visualstudio.com/_apis/public/gallery/publishers/${publisher}/vsextensions/${name}/${version}/vspackage?${target ? `targetPlatform=${target}` : ''}`;
+        // 다운로드 링크 생성
+        const a = document.createElement('a');
+        a.href = url;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        closeModal();
+      }
+    })
+
+    // 카드 클릭 이벤트 (버전 선택 모달)
+    document.querySelector('.results-grid').addEventListener('click', async function (e) {
+      const card = e.target.closest('.ext-card');
+      if (!card) return;
+      const extId = card.dataset.extensionId;
+      if (!extId) return;
+      // publisher.name
+      const [publisher, name] = extId.split('.');
+      // 상세 쿼리 (모든 버전)
+      const res = await fetch("https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery", {
+        headers: {
+          "accept": "application/json;api-version=3.0-preview.1",
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          filters: [{
+            criteria: [
+              { filterType: 7, value: `${publisher}.${name}` },
+              { filterType: 8, value: "Microsoft.VisualStudio.Code" },
+              { filterType: 12, value: "4096" }
+            ],
+            pageNumber: 1,
+            pageSize: 1
+          }],
+          assetTypes: [],
+          flags: 1073
+        }),
+        method: "POST"
+      });
+      const data = await res.json();
+      const ext = data.results?.[0]?.extensions?.[0];
+      if (!ext) return;
+      // prerelease 제외, 버전 내림차순
+      // PreRelease는 properties 배열에서 key === 'Microsoft.VisualStudio.Code.PreRelease' && value === 'true' 인 경우임
+      const versions = ext.versions.filter(v => !v.properties?.some(p => p.key === 'Microsoft.VisualStudio.Code.PreRelease' && p.value === 'true'));
+      versions.sort((a, b) => b.version.localeCompare(a.version, undefined, {numeric:true}));
+      // 버전 선택 모달
+      let versionOptions = versions.map(v => `<option value='${v.version}#${v.targetPlatform ?? ''}'>${v.version}${v.targetPlatform ? ` (${v.targetPlatform})` : ''} (VSCode: ${v.properties?.find(p => p.key === 'Microsoft.VisualStudio.Code.Engine')?.value})</option>`).join('');
+      showModal(`
+        <h2 style='margin-top:0'>버전 선택</h2>
+        <select id='select-version' data-publisher='${publisher}' data-name='${name}' style='width:100%;margin:16px 0 24px 0;padding:8px 6px;font-size:1.1em;'>${versionOptions}</select>
+        <button id='download-vsix' style='width:100%;padding:10px 0;background:#0078d4;color:#fff;border:none;border-radius:8px;font-size:1.1em;cursor:pointer;'>다운로드</button>
+      `);
+    });
+
+    const searchFunc = async () => {
+      if (loading) return; // 중복 실행 방지
+      loading = true;
+      try {
+        const query = document.querySelector('.search-input').value.trim();
+        if (!query) return;
+        const grid = document.querySelector('.results-grid');
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#888;">검색 중...</div>';
+        const res1 = await fetch("https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery", {
+          headers: {
+            "accept": "application/json;api-version=3.0-preview.1",
+            "accept-language": "en-US",
+            "content-type": "application/json",
+            "priority": "u=1, i",
+            "sec-ch-ua": '"Not:A-Brand";v="24", "Chromium";v="134"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+          },
+          referrerPolicy: "strict-origin-when-cross-origin",
+          body: JSON.stringify({
+            filters: [{
+              criteria: [
+                { filterType: 10, value: query },
+                { filterType: 8, value: "Microsoft.VisualStudio.Code" },
+                { filterType: 12, value: "4096" }
+              ],
+              pageNumber: 1,
+              pageSize: 50,
+              sortBy: 0,
+              sortOrder: 0
+            }],
+            assetTypes: [],
+            flags: 950
+          }),
+          method: "POST",
+          mode: "cors",
+          credentials: "omit"
+        });
+        const data1 = await res1.json();
+        const extensions = data1.results?.[0]?.extensions || [];
+        if (extensions.length === 0) {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#888;">검색 결과 없음</div>';
+          return;
+        }
+        grid.innerHTML = '';
+        extensions.forEach(ext => {
+          const version = ext.versions[0];
+          // Small 아이콘 URL 찾기
+          let icon = version.files.find(f => f.assetType === 'Microsoft.VisualStudio.Services.Icons.Small')?.source;
+          if (!icon) icon = 'https://code.visualstudio.com/assets/images/code-stable.png';
+          // publisher
+          const publisher = ext.publisher?.publisherName || '';
+          // 다운로드 횟수
+          const installs = (ext.statistics?.find(s => s.statisticName === 'install')?.value || 0).toLocaleString();
+          // domain
+          const domain = ext.publisher?.domain || '';
+          // 인증마크 (verified)
+          const isVerified = ext.publisher?.isDomainVerified;
+          // 별점
+          const rating = ext.statistics?.find(s => s.statisticName === 'averagerating')?.value || 0;
+          const ratingCount = ext.statistics?.find(s => s.statisticName === 'ratingcount')?.value || 0;
+          // 별점 시각화
+          const stars = `<span style='color:#f5b50a;'>${'★'.repeat(Math.round(rating))}${'☆'.repeat(5 - Math.round(rating))}</span>`;
+          // 카드 생성
+          const card = document.createElement('div');
+          card.className = 'ext-card';
+          card.dataset.extensionId = `${publisher}.${ext.extensionName}`;
+          card.tabIndex = 0;
+          card.style.cursor = 'pointer';
+          card.innerHTML = `
+            <img class="ext-icon" src="${icon}" alt="${ext.displayName}">
+            <div class="ext-info">
+              <div class="ext-title" title="${ext.displayName || ext.extensionName}">
+                ${ext.displayName || ext.extensionName}
+              </div>
+              <div style="font-size:0.95em;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${isVerified ? '<span title="Verified">✔️</span>' : ''}${publisher}
+              </div>
+              <div style="font-size:0.95em;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">다운로드: ${installs}</div>
+              <div style="font-size:0.95em;color:#666;">${stars} <span style="color:#aaa;font-size:0.9em;">(${ratingCount})</span></div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (error) {
+        console.error('검색 중 오류 발생:', error);
+        const grid = document.querySelector('.results-grid');
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#f00;">검색 중 오류가 발생했습니다.</div>';
+      } finally {
+        loading = false;
+      }
+    }
+
+    // 검색 기능을 위한 간단한 스크립트
+    document.querySelector('.search-btn').addEventListener('click', searchFunc);
+    document.querySelector('.search-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        searchFunc();
+      }
+    });
+  </script>
+</body>
+
+</html>
