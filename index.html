@@ -18,6 +18,9 @@
       padding: 24px 32px 16px 32px;
       background: #fff;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     .search-box {
@@ -155,7 +158,12 @@
   <!-- 모달 영역 -->
   <div id="modal-backdrop" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.25);justify-content:center;align-items:center;"></div>
   <script>
-    let loading = false
+    let loading = false;
+    let currentPage = 1;
+    let lastQuery = '';
+    let hasMore = true;
+    let extensionsCache = [];
+
     // 모달 생성 함수
     function showModal(html) {
       const modal = document.getElementById('modal-backdrop');
@@ -234,14 +242,20 @@
       `);
     });
 
-    const searchFunc = async () => {
-      if (loading) return; // 중복 실행 방지
+    async function searchFunc(isLoadMore = false) {
+      if (loading) return;
       loading = true;
       try {
         const query = document.querySelector('.search-input').value.trim();
         if (!query) return;
         const grid = document.querySelector('.results-grid');
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#888;">검색 중...</div>';
+        if (!isLoadMore) {
+          grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#888;">검색 중...</div>';
+          currentPage = 1;
+          hasMore = true;
+          extensionsCache = [];
+          lastQuery = query;
+        }
         const res1 = await fetch("https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery", {
           headers: {
             "accept": "application/json;api-version=3.0-preview.1",
@@ -263,7 +277,7 @@
                 { filterType: 8, value: "Microsoft.VisualStudio.Code" },
                 { filterType: 12, value: "4096" }
               ],
-              pageNumber: 1,
+              pageNumber: currentPage,
               pageSize: 50,
               sortBy: 0,
               sortOrder: 0
@@ -277,30 +291,27 @@
         });
         const data1 = await res1.json();
         const extensions = data1.results?.[0]?.extensions || [];
-        if (extensions.length === 0) {
-          grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#888;">검색 결과 없음</div>';
-          return;
+        if (!isLoadMore) {
+          if (extensions.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#888;">검색 결과 없음</div>';
+            hasMore = false;
+            return;
+          }
+          grid.innerHTML = '';
         }
-        grid.innerHTML = '';
+        if (extensions.length < 50) hasMore = false;
+        extensionsCache = extensionsCache.concat(extensions);
         extensions.forEach(ext => {
           const version = ext.versions[0];
-          // Small 아이콘 URL 찾기
           let icon = version.files.find(f => f.assetType === 'Microsoft.VisualStudio.Services.Icons.Small')?.source;
           if (!icon) icon = 'https://code.visualstudio.com/assets/images/code-stable.png';
-          // publisher
           const publisher = ext.publisher?.publisherName || '';
-          // 다운로드 횟수
           const installs = (ext.statistics?.find(s => s.statisticName === 'install')?.value || 0).toLocaleString();
-          // domain
           const domain = ext.publisher?.domain || '';
-          // 인증마크 (verified)
           const isVerified = ext.publisher?.isDomainVerified;
-          // 별점
           const rating = ext.statistics?.find(s => s.statisticName === 'averagerating')?.value || 0;
           const ratingCount = ext.statistics?.find(s => s.statisticName === 'ratingcount')?.value || 0;
-          // 별점 시각화
           const stars = `<span style='color:#f5b50a;'>${'★'.repeat(Math.round(rating))}${'☆'.repeat(5 - Math.round(rating))}</span>`;
-          // 카드 생성
           const card = document.createElement('div');
           card.className = 'ext-card';
           card.dataset.extensionId = `${publisher}.${ext.extensionName}`;
@@ -321,20 +332,33 @@
           `;
           grid.appendChild(card);
         });
+        currentPage++;
       } catch (error) {
         console.error('검색 중 오류 발생:', error);
         const grid = document.querySelector('.results-grid');
         grid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#f00;">검색 중 오류가 발생했습니다.</div>';
+        hasMore = false;
       } finally {
         loading = false;
       }
     }
 
+    // 무한 스크롤 이벤트
+    window.addEventListener('scroll', () => {
+      const grid = document.querySelector('.results-grid');
+      if (!hasMore || loading) return;
+      const rect = grid.getBoundingClientRect();
+      if (rect.bottom < window.innerHeight + 200) {
+        // 마지막 카드가 화면 하단 근처에 오면 추가 로드
+        searchFunc(true);
+      }
+    });
+
     // 검색 기능을 위한 간단한 스크립트
-    document.querySelector('.search-btn').addEventListener('click', searchFunc);
+    document.querySelector('.search-btn').addEventListener('click', () => searchFunc(false));
     document.querySelector('.search-input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
-        searchFunc();
+        searchFunc(false);
       }
     });
   </script>
